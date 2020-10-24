@@ -49,6 +49,7 @@ type directMessaging struct {
 	tracingSpec         config.TracingSpec
 	hostAddress         string
 	hostName            string
+	timeout             time.Duration
 }
 
 type remoteApp struct {
@@ -64,7 +65,8 @@ func NewDirectMessaging(
 	appChannel channel.AppChannel,
 	clientConnFn messageClientConnection,
 	resolver nr.Resolver,
-	tracingSpec config.TracingSpec) DirectMessaging {
+	tracingSpec config.TracingSpec,
+	timeout time.Duration) DirectMessaging {
 	hAddr, _ := utils.GetHostAddress()
 	hName, _ := os.Hostname()
 	return &directMessaging{
@@ -78,6 +80,7 @@ func NewDirectMessaging(
 		tracingSpec:         tracingSpec,
 		hostAddress:         hAddr,
 		hostName:            hName,
+		timeout:             timeout,
 	}
 }
 
@@ -151,6 +154,12 @@ func (d *directMessaging) invokeRemote(ctx context.Context, appID, namespace, ap
 	}
 
 	span := diag_utils.SpanFromContext(ctx)
+
+	// TODO: Use built-in grpc client timeout instead of using context timeout
+	// no ops if span context is empty
+	ctx, cancel := context.WithTimeout(ctx, d.timeout)
+	defer cancel()
+
 	ctx = diag.SpanContextToGRPCMetadata(ctx, span.SpanContext())
 
 	d.addForwardedHeadersToMetadata(req)

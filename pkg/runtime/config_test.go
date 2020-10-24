@@ -7,13 +7,14 @@ package runtime
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewConfig(t *testing.T) {
 	c := NewRuntimeConfig("app1", "localhost:5050", "localhost:5051", "*", "config", "components", "http", "kubernetes",
-		3500, 50002, 50001, 8080, 7070, true, 1, true, "localhost:5052", true)
+		3500, 50002, 50001, 8080, 7070, true, 1, 150*time.Second, true, "localhost:5052", true)
 
 	assert.Equal(t, "app1", c.ID)
 	assert.Equal(t, "localhost:5050", c.PlacementServiceAddress)
@@ -30,6 +31,7 @@ func TestNewConfig(t *testing.T) {
 	assert.Equal(t, 7070, c.ProfilePort)
 	assert.Equal(t, true, c.EnableProfiling)
 	assert.Equal(t, 1, c.MaxConcurrency)
+	assert.Equal(t, 150*time.Second, c.ChannelTimeout)
 	assert.Equal(t, true, c.mtlsEnabled)
 	assert.Equal(t, "localhost:5052", c.SentryServiceAddress)
 	assert.Equal(t, true, c.AppSSL)

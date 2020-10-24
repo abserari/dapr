@@ -1745,6 +1745,7 @@ func NewTestDaprRuntimeWithProtocol(mode modes.DaprMode, protocol string, appPor
 		DefaultProfilePort,
 		false,
 		-1,
+		120,
 		false,
 		"",
 		false)
