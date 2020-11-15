@@ -5,15 +5,20 @@ go 1.15
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.2.0
 	github.com/AdhityaRamadhanus/fasthttpcors v0.0.0-20170121111917-d4c07198763a
-	github.com/dapr/components-contrib v0.4.1-0.20201016004933-ed7480237d80
+	github.com/dapr/components-contrib v1.0.0-rc1
 	github.com/dnaeon/go-vcr v1.1.0 // indirect
 	github.com/fasthttp/router v1.3.2
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.4.3
+	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.7.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/hashicorp/go-hclog v0.9.1
+	github.com/hashicorp/go-msgpack v0.5.5
+	github.com/hashicorp/raft v1.2.0
+	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/json-iterator/go v1.1.10
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
@@ -30,6 +35,7 @@ require (
 	github.com/yuin/gopher-lua v0.0.0-20200603152657-dc2b0ca8b37e // indirect
 	go.opencensus.io v0.22.4
 	go.opentelemetry.io/otel v0.13.0
+	go.uber.org/atomic v1.5.0
 	google.golang.org/genproto v0.0.0-20200904004341-0bd0a958aa1d
 	google.golang.org/grpc v1.33.1
 	gopkg.in/square/go-jose.v2 v2.5.0 // indirect

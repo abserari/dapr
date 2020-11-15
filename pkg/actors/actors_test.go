@@ -23,6 +23,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -97,7 +99,7 @@ func newTestActorsRuntimeWithMock(mockAppChannel *channelt.MockAppChannel) *acto
 
 	spec := config.TracingSpec{SamplingRate: "1"}
 	store := fakeStore()
-	config := NewConfig("", TestAppID, "", nil, 0, "", "", "", false, "")
+	config := NewConfig("", TestAppID, []string{""}, nil, 0, "", "", "", false, "")
 	a := NewActors(store, mockAppChannel, nil, config, nil, spec)
 
 	return a.(*actorsRuntime)
@@ -700,6 +702,50 @@ func TestDeleteState(t *testing.T) {
 	assert.Nil(t, response.Data)
 }
 
+func TestCallLocalActor(t *testing.T) {
+	const (
+		testActorType = "pet"
+		testActorID   = "dog"
+		testMethod    = "bite"
+	)
+
+	req := invokev1.NewInvokeMethodRequest(testMethod).WithActor(testActorType, testActorID)
+
+	t.Run("invoke actor successfully", func(t *testing.T) {
+		testActorRuntime := newTestActorsRuntime()
+		resp, err := testActorRuntime.callLocalActor(context.Background(), req)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("actor is already disposed", func(t *testing.T) {
+		// arrange
+		testActorRuntime := newTestActorsRuntime()
+		actorKey := testActorRuntime.constructCompositeKey(testActorType, testActorID)
+		act := newActor(testActorType, testActorID)
+
+		// add test actor
+		testActorRuntime.actorsTable.LoadOrStore(actorKey, act)
+		act.lock()
+		assert.True(t, act.isBusy())
+
+		// get dispose channel for test actor
+		ch := act.channel()
+		act.unlock()
+
+		_, closed := <-ch
+		assert.False(t, closed, "dispose channel must be closed after unlock")
+
+		// act
+		resp, err := testActorRuntime.callLocalActor(context.Background(), req)
+
+		// assert
+		s, _ := status.FromError(err)
+		assert.Equal(t, codes.ResourceExhausted, s.Code())
+		assert.Nil(t, resp)
+	})
+}
+
 func TestTransactionalState(t *testing.T) {
 	ctx := context.Background()
 	t.Run("Single set request succeeds", func(t *testing.T) {
@@ -792,6 +838,23 @@ func TestTransactionalState(t *testing.T) {
 	})
 }
 
+func TestGetOrCreateActor(t *testing.T) {
+	const testActorType = "fakeActor"
+	testActorRuntime := newTestActorsRuntime()
+
+	t.Run("create new key", func(t *testing.T) {
+		act := testActorRuntime.getOrCreateActor(testActorType, "id-1")
+		assert.NotNil(t, act)
+	})
+
+	t.Run("try to create the same key", func(t *testing.T) {
+		oldActor := testActorRuntime.getOrCreateActor(testActorType, "id-2")
+		assert.NotNil(t, oldActor)
+		newActor := testActorRuntime.getOrCreateActor(testActorType, "id-2")
+		assert.Same(t, oldActor, newActor, "should not create new actor")
+	})
+}
+
 func TestActiveActorsCount(t *testing.T) {
 	ctx := context.Background()
 	t.Run("Actors Count", func(t *testing.T) {
@@ -829,6 +892,16 @@ func TestActorsAppHealthCheck(t *testing.T) {
 	assert.False(t, testActorRuntime.appHealthy)
 }
 
+func TestShutdown(t *testing.T) {
+	testActorRuntime := newTestActorsRuntime()
+
+	t.Run("no panic when placement is nil", func(t *testing.T) {
+		testActorRuntime.placement = nil
+		testActorRuntime.Stop()
+		// No panic
+	})
+}
+
 func TestConstructCompositeKeyWithThreeArgs(t *testing.T) {
 	appID := "myapp"
 	actorType := "TestActor"
@@ -841,10 +914,10 @@ func TestConstructCompositeKeyWithThreeArgs(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	c := NewConfig("localhost:5050", "app1", "placement:5050", []string{"1"}, 3500, "1s", "2s", "3s", true, "default")
+	c := NewConfig("localhost:5050", "app1", []string{"placement:5050"}, []string{"1"}, 3500, "1s", "2s", "3s", true, "default")
 	assert.Equal(t, "localhost:5050", c.HostAddress)
 	assert.Equal(t, "app1", c.AppID)
-	assert.Equal(t, "placement:5050", c.PlacementServiceAddress)
+	assert.Equal(t, []string{"placement:5050"}, c.PlacementAddresses)
 	assert.Equal(t, []string{"1"}, c.HostedActorTypes)
 	assert.Equal(t, 3500, c.Port)
 	assert.Equal(t, "1s", c.ActorDeactivationScanInterval.String())

@@ -56,7 +56,7 @@ const (
 	TestRuntimeConfigID  = "consumer0"
 	TestPubsubName       = "testpubsub"
 	TestSecondPubsubName = "testpubsub2"
-	maxGRPCServerUptime  = 100 * time.Millisecond
+	maxGRPCServerUptime  = 200 * time.Millisecond
 )
 
 var (
@@ -417,6 +417,8 @@ func TestInitPubSub(t *testing.T) {
 			assert.Nil(t, err)
 		}
 
+		rt.startSubscribing()
+
 		// assert
 		mockPubSub.AssertNumberOfCalls(t, "Init", 1)
 		mockPubSub2.AssertNumberOfCalls(t, "Init", 1)
@@ -449,6 +451,8 @@ func TestInitPubSub(t *testing.T) {
 			assert.Nil(t, err)
 		}
 
+		rt.startSubscribing()
+
 		// assert
 		mockPubSub.AssertNumberOfCalls(t, "Init", 1)
 
@@ -474,6 +478,8 @@ func TestInitPubSub(t *testing.T) {
 			err := rt.processComponentAndDependents(comp)
 			assert.Nil(t, err)
 		}
+
+		rt.startSubscribing()
 
 		// assert
 		mockPubSub.AssertNumberOfCalls(t, "Init", 1)
@@ -580,6 +586,8 @@ func TestInitPubSub(t *testing.T) {
 			assert.Nil(t, err)
 		}
 
+		rt.startSubscribing()
+
 		// assert
 		mockPubSub.AssertNumberOfCalls(t, "Init", 1)
 		mockPubSub2.AssertNumberOfCalls(t, "Init", 1)
@@ -609,6 +617,8 @@ func TestInitPubSub(t *testing.T) {
 			err := rt.processComponentAndDependents(comp)
 			assert.Nil(t, err)
 		}
+
+		rt.startSubscribing()
 
 		// assert
 		mockPubSub.AssertNumberOfCalls(t, "Init", 1)
@@ -671,6 +681,8 @@ func TestInitPubSub(t *testing.T) {
 			err := rt.processComponentAndDependents(comp)
 			assert.Nil(t, err)
 		}
+
+		rt.startSubscribing()
 
 		// assert
 		mockPubSub.AssertNumberOfCalls(t, "Init", 1)
@@ -1580,12 +1592,9 @@ func TestOnNewPublishedMessageGRPC(t *testing.T) {
 					topic: topic,
 				},
 			}
-			// create a new AppChannel and gRPC client for every test
-			rt.createAppChannel()
-			// properly close the app channel created
-			defer rt.grpc.AppClient.Close()
 			var grpcServer *grpc.Server
 
+			// create mock application server first
 			if !tc.noResponseStatus {
 				grpcServer = startTestAppCallbackGRPCServer(t, port, &channelt.MockServer{
 					TopicEventResponseStatus: tc.responseStatus,
@@ -1600,6 +1609,11 @@ func TestOnNewPublishedMessageGRPC(t *testing.T) {
 				// properly stop the gRPC server
 				defer grpcServer.Stop()
 			}
+
+			// create a new AppChannel and gRPC client for every test
+			rt.createAppChannel()
+			// properly close the app channel created
+			defer rt.grpc.AppClient.Close()
 
 			// act
 			err = rt.publishMessageGRPC(testPubSubMessage)
@@ -1636,13 +1650,17 @@ func TestGetSubscribedBindingsGRPC(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			port, _ := freeport.GetFreePort()
 			rt := NewTestDaprRuntimeWithProtocol(modes.StandaloneMode, string(GRPCProtocol), port)
-			rt.createAppChannel()
-			defer rt.grpc.AppClient.Close()
+			// create mock application server first
 			grpcServer := startTestAppCallbackGRPCServer(t, port, &channelt.MockServer{
 				Error:    tc.responseError,
 				Bindings: tc.responseFromApp,
 			})
 			defer grpcServer.Stop()
+
+			// create a new AppChannel and gRPC client for every test
+			rt.createAppChannel()
+			// properly close the app channel created
+			defer rt.grpc.AppClient.Close()
 
 			// act
 			resp := rt.getSubscribedBindingsGRPC()
@@ -1731,7 +1749,7 @@ func NewTestDaprRuntime(mode modes.DaprMode) *DaprRuntime {
 func NewTestDaprRuntimeWithProtocol(mode modes.DaprMode, protocol string, appPort int) *DaprRuntime {
 	testRuntimeConfig := NewRuntimeConfig(
 		TestRuntimeConfigID,
-		"10.10.10.12",
+		[]string{"10.10.10.12"},
 		"10.10.10.11",
 		cors.DefaultAllowedOrigins,
 		"globalConfig",
@@ -1860,6 +1878,12 @@ func TestReadInputBindings(t *testing.T) {
 		mockAppChannel := new(channelt.MockAppChannel)
 		rt.appChannel = mockAppChannel
 
+		fakeBindingReq := invokev1.NewInvokeMethodRequest(testInputBindingMethod)
+		fakeBindingReq.WithHTTPExtension(http.MethodOptions, "")
+		fakeBindingReq.WithRawData(nil, invokev1.JSONContentType)
+
+		fakeBindingResp := invokev1.NewInvokeMethodResponse(200, "OK", nil)
+
 		fakeReq := invokev1.NewInvokeMethodRequest(testInputBindingMethod)
 		fakeReq.WithHTTPExtension(http.MethodPost, "")
 		fakeReq.WithRawData(testInputBindingData, "application/json")
@@ -1869,6 +1893,7 @@ func TestReadInputBindings(t *testing.T) {
 		fakeResp := invokev1.NewInvokeMethodResponse(200, "OK", nil)
 		fakeResp.WithRawData([]byte("OK"), "application/json")
 
+		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.emptyCtx"), fakeBindingReq).Return(fakeBindingResp, nil)
 		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.valueCtx"), fakeReq).Return(fakeResp, nil)
 
 		rt.appChannel = mockAppChannel
@@ -1884,6 +1909,12 @@ func TestReadInputBindings(t *testing.T) {
 		mockAppChannel := new(channelt.MockAppChannel)
 		rt.appChannel = mockAppChannel
 
+		fakeBindingReq := invokev1.NewInvokeMethodRequest(testInputBindingMethod)
+		fakeBindingReq.WithHTTPExtension(http.MethodOptions, "")
+		fakeBindingReq.WithRawData(nil, invokev1.JSONContentType)
+
+		fakeBindingResp := invokev1.NewInvokeMethodResponse(200, "OK", nil)
+
 		fakeReq := invokev1.NewInvokeMethodRequest(testInputBindingMethod)
 		fakeReq.WithHTTPExtension(http.MethodPost, "")
 		fakeReq.WithRawData(testInputBindingData, "application/json")
@@ -1893,6 +1924,7 @@ func TestReadInputBindings(t *testing.T) {
 		fakeResp := invokev1.NewInvokeMethodResponse(500, "Internal Error", nil)
 		fakeResp.WithRawData([]byte("Internal Error"), "application/json")
 
+		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.emptyCtx"), fakeBindingReq).Return(fakeBindingResp, nil)
 		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.valueCtx"), fakeReq).Return(fakeResp, nil)
 
 		rt.appChannel = mockAppChannel
@@ -1908,6 +1940,12 @@ func TestReadInputBindings(t *testing.T) {
 		mockAppChannel := new(channelt.MockAppChannel)
 		rt.appChannel = mockAppChannel
 
+		fakeBindingReq := invokev1.NewInvokeMethodRequest(testInputBindingMethod)
+		fakeBindingReq.WithHTTPExtension(http.MethodOptions, "")
+		fakeBindingReq.WithRawData(nil, invokev1.JSONContentType)
+
+		fakeBindingResp := invokev1.NewInvokeMethodResponse(200, "OK", nil)
+
 		fakeReq := invokev1.NewInvokeMethodRequest(testInputBindingMethod)
 		fakeReq.WithHTTPExtension(http.MethodPost, "")
 		fakeReq.WithRawData(testInputBindingData, "application/json")
@@ -1917,7 +1955,9 @@ func TestReadInputBindings(t *testing.T) {
 		fakeResp := invokev1.NewInvokeMethodResponse(200, "OK", nil)
 		fakeResp.WithRawData([]byte("OK"), "application/json")
 
+		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.emptyCtx"), fakeBindingReq).Return(fakeBindingResp, nil)
 		mockAppChannel.On("InvokeMethod", mock.AnythingOfType("*context.valueCtx"), fakeReq).Return(fakeResp, nil)
+
 		rt.appChannel = mockAppChannel
 
 		b := mockBinding{metadata: map[string]string{"bindings": "input"}}
@@ -2082,7 +2122,7 @@ func TestInitBindings(t *testing.T) {
 		c.ObjectMeta.Name = "testInputBinding"
 		c.Spec.Type = "bindings.testInputBinding"
 		err := r.initBinding(c)
-		assert.NotEqual(t, "couldn't find input binding bindings.testInputBinding", err.Error())
+		assert.NoError(t, err)
 	})
 
 	t.Run("single output binding", func(t *testing.T) {
@@ -2118,8 +2158,7 @@ func TestInitBindings(t *testing.T) {
 		input.ObjectMeta.Name = "testinput"
 		input.Spec.Type = "bindings.testinput"
 		err := r.initBinding(input)
-		assert.Error(t, err)
-		assert.NotEqual(t, "couldn't find input binding bindings.test", err.Error())
+		assert.NoError(t, err)
 
 		output := components_v1alpha1.Component{}
 		output.ObjectMeta.Name = "testinput"

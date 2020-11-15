@@ -58,17 +58,17 @@ type Config struct {
 // NewRuntimeConfig returns a new runtime config
 func NewRuntimeConfig(id, placementServiceAddress, controlPlaneAddress, allowedOrigins, globalConfig, componentsPath, appProtocol, mode string, httpPort, internalGRPCPort, apiGRPCPort, appPort, profilePort int, enableProfiling bool, maxConcurrency int, timeout time.Duration, mtlsEnabled bool, sentryAddress string, appSSL bool) *Config {
 	return &Config{
-		ID:                      id,
-		HTTPPort:                httpPort,
-		InternalGRPCPort:        internalGRPCPort,
-		APIGRPCPort:             apiGRPCPort,
-		ApplicationPort:         appPort,
-		ProfilePort:             profilePort,
-		ApplicationProtocol:     Protocol(appProtocol),
-		Mode:                    modes.DaprMode(mode),
-		PlacementServiceAddress: placementServiceAddress,
-		GlobalConfig:            globalConfig,
-		AllowedOrigins:          allowedOrigins,
+		ID:                  id,
+		HTTPPort:            httpPort,
+		InternalGRPCPort:    internalGRPCPort,
+		APIGRPCPort:         apiGRPCPort,
+		ApplicationPort:     appPort,
+		ProfilePort:         profilePort,
+		ApplicationProtocol: Protocol(appProtocol),
+		Mode:                modes.DaprMode(mode),
+		PlacementAddresses:  placementAddresses,
+		GlobalConfig:        globalConfig,
+		AllowedOrigins:      allowedOrigins,
 		Standalone: config.StandaloneConfig{
 			ComponentsPath: componentsPath,
 		},
