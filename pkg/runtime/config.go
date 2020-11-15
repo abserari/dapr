@@ -33,30 +33,34 @@ const (
 
 // Config holds the Dapr Runtime configuration
 type Config struct {
-	ID                      string
-	HTTPPort                int
-	ProfilePort             int
-	EnableProfiling         bool
-	APIGRPCPort             int
-	InternalGRPCPort        int
-	ApplicationPort         int
-	ApplicationProtocol     Protocol
-	Mode                    modes.DaprMode
-	PlacementServiceAddress string
-	GlobalConfig            string
-	AllowedOrigins          string
-	Standalone              config.StandaloneConfig
-	Kubernetes              config.KubernetesConfig
-	MaxConcurrency          int
-	ChannelTimeout          time.Duration
-	mtlsEnabled             bool
-	SentryServiceAddress    string
-	CertChain               *credentials.CertChain
-	AppSSL                  bool
+	ID                   string
+	HTTPPort             int
+	ProfilePort          int
+	EnableProfiling      bool
+	APIGRPCPort          int
+	InternalGRPCPort     int
+	ApplicationPort      int
+	ApplicationProtocol  Protocol
+	Mode                 modes.DaprMode
+	PlacementAddresses   []string
+	GlobalConfig         string
+	AllowedOrigins       string
+	Standalone           config.StandaloneConfig
+	Kubernetes           config.KubernetesConfig
+	MaxConcurrency       int
+	ChannelTimeout       time.Duration
+	mtlsEnabled          bool
+	SentryServiceAddress string
+	CertChain            *credentials.CertChain
+	AppSSL               bool
 }
 
 // NewRuntimeConfig returns a new runtime config
-func NewRuntimeConfig(id, placementServiceAddress, controlPlaneAddress, allowedOrigins, globalConfig, componentsPath, appProtocol, mode string, httpPort, internalGRPCPort, apiGRPCPort, appPort, profilePort int, enableProfiling bool, maxConcurrency int, timeout time.Duration, mtlsEnabled bool, sentryAddress string, appSSL bool) *Config {
+func NewRuntimeConfig(
+	id string, placementAddresses []string,
+	controlPlaneAddress, allowedOrigins, globalConfig, componentsPath, appProtocol, mode string,
+	httpPort, internalGRPCPort, apiGRPCPort, appPort, profilePort int,
+	enableProfiling bool, maxConcurrency int, timeout time.Duration, mtlsEnabled bool, sentryAddress string, appSSL bool) *Config {
 	return &Config{
 		ID:                  id,
 		HTTPPort:            httpPort,
