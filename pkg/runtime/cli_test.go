@@ -36,3 +36,12 @@ func TestParsePlacementAddr(t *testing.T) {
 		})
 	}
 }
+
+func TestCliFromFlagsDefaultNoAppIDShouldBeNil(t *testing.T) {
+	t.Run("cliFromFlags", func(t *testing.T) {
+		runtime, err := FromFlags()
+
+		assert.EqualError(t, err, "app-id parameter cannot be empty")
+		assert.Nil(t, runtime)
+	})
+}
