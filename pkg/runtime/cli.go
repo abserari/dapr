@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"fortio.org/fortio/log"
 	global_config "github.com/dapr/dapr/pkg/config"
 	"github.com/dapr/dapr/pkg/cors"
 	"github.com/dapr/dapr/pkg/grpc"
