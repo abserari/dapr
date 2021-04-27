@@ -6,6 +6,7 @@
 package runtime
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,5 +44,23 @@ func TestCliFromFlagsDefaultNoAppIDShouldBeNil(t *testing.T) {
 
 		assert.EqualError(t, err, "app-id parameter cannot be empty")
 		assert.Nil(t, runtime)
+	})
+}
+
+func TestSetEnvVariables(t *testing.T) {
+	t.Run("Should set environment variables", func(t *testing.T) {
+		variables := map[string]string{
+			"ABC_ID":   "123",
+			"ABC_PORT": "234",
+			"ABC_HOST": "456",
+		}
+
+		err := setEnvVariables(variables)
+
+		assert.NoError(t, err)
+
+		for key, value := range variables {
+			assert.Equal(t, value, os.Getenv(key))
+		}
 	})
 }
